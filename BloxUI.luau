@@ -119,7 +119,7 @@ export type DropdownConfig = {
 --==============================================================================
 
 local Config = {
-	Folder    = "BloxUI",
+	Folder    = "BloxxerHub",
 	FadeSpeed = 0.18,
 	Tween = {
 		Time      = 0.18,
