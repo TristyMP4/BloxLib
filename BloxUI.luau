@@ -147,9 +147,22 @@ local Config = {
 	StreamProof   = false, -- best-effort: hide the UI from screen capture (executor-dependent)
 }
 
+-- Universe IDs keep an experience's places together. Unpublished places fall
+-- back to a separate place namespace; an unknown identity must not share files.
+local function configIdentityId(value)
+	return type(value) == "number" and value > 0 and value < math.huge
+		and value == math.floor(value) and string.format("%.0f", value) or nil
+end
+local ConfigScope = configIdentityId(game.GameId)
+if not ConfigScope then
+	local placeId = configIdentityId(game.PlaceId)
+	if placeId then ConfigScope = "Place_" .. placeId end
+end
+local HasConfigFileSystem = HasFileSystem and ConfigScope ~= nil
 local Folders = {
 	Root    = Config.Folder,
-	Configs = Config.Folder .. "/Configs",
+	ConfigsRoot = Config.Folder .. "/Configs",
+	Configs = ConfigScope and (Config.Folder .. "/Configs/" .. ConfigScope) or nil,
 	Assets  = Config.Folder .. "/Assets",
 }
 local ConfigControlFlags = {
@@ -1267,8 +1280,11 @@ local Assets = {
 }
 
 if HasFileSystem then
-	for _, dir in Folders do
-		if not isfolder(dir) then pcall(makefolder, dir) end
+	-- Parent folders must exist first on executors without recursive makefolder.
+	local directories = { Folders.Root, Folders.ConfigsRoot, Folders.Assets }
+	if Folders.Configs then directories[#directories + 1] = Folders.Configs end
+	for _, dir in ipairs(directories) do
+		pcall(function() if not isfolder(dir) then makefolder(dir) end end)
 	end
 	for _, data in Assets do
 		local path = Folders.Assets .. "/" .. data[1]
@@ -1581,7 +1597,7 @@ end
 -- // One universe shares profiles across its places, without inheriting another game's auto-load. \\ --
 --- Auto-load: which named config (if any) is applied automatically on launch.
 function Library:GetAutoLoad(): string?
-	if not HasFileSystem then return nil end
+	if not HasConfigFileSystem then return nil end
 	local name = readConfigFile(Folders.Configs .. "/autoload.txt")
 	if validConfigName(name) and configFileExists(Folders.Configs .. "/" .. name .. ".json") then return name end
 	return nil
@@ -1589,7 +1605,7 @@ end
 
 --- Set (or clear, with nil/"None") the config that auto-loads on launch.
 function Library:SetAutoLoad(name: string?): boolean
-	if not HasFileSystem then return false end
+	if not HasConfigFileSystem then return false end
 	local p = Folders.Configs .. "/autoload.txt"
 	if name == nil or name == "" or name == "None" then
 		if not configFileExists(p) then return true end
@@ -1663,7 +1679,7 @@ end
 
 function Library:ListConfigs(): { string }
 	local list, seen = {}, {}
-	if not HasFileSystem then return list end
+	if not HasConfigFileSystem then return list end
 	local folders = { Folders.Configs }
 	for _, folder in folders do
 		local ok, paths = pcall(listfiles, folder)
@@ -1682,7 +1698,7 @@ function Library:ListConfigs(): { string }
 end
 
 function Library:SaveConfig(name: string): boolean
-	if not HasFileSystem or not validConfigName(name) then return false end
+	if not HasConfigFileSystem or not validConfigName(name) then return false end
 	local path = Folders.Configs .. "/" .. name .. ".json"
 	local existed = configFileExists(path) or self:ReadConfig(name) ~= nil
 	local serialized, raw = pcall(self.GetConfig, self)
@@ -1697,7 +1713,7 @@ function Library:SaveConfig(name: string): boolean
 end
 
 function Library:DeleteConfig(name: string): boolean
-	if not HasFileSystem or type(delfile) ~= "function" or not validConfigName(name) then return false end
+	if not HasConfigFileSystem or type(delfile) ~= "function" or not validConfigName(name) then return false end
 	local path = Folders.Configs .. "/" .. name .. ".json"
 	if configFileExists(path) then
 		local auto = readConfigFile(Folders.Configs .. "/autoload.txt")
@@ -1713,7 +1729,7 @@ function Library:DeleteConfig(name: string): boolean
 end
 
 function Library:ReadConfig(name: string): string?
-	if not HasFileSystem or not validConfigName(name) then return nil end
+	if not HasConfigFileSystem or not validConfigName(name) then return nil end
 	local path = Folders.Configs .. "/" .. name .. ".json"
 	local raw = readConfigFile(path)
 	if raw ~= nil then return raw end
@@ -1724,7 +1740,7 @@ end
 function Library:_ConfigMetadataIndex()
 	if self._configMetadataFolder ~= Folders.Configs or not self._configMetadata then
 		self._configMetadataFolder = Folders.Configs
-		local raw = HasFileSystem and readConfigFile(Folders.Configs .. "/" .. ConfigMetadata.FILENAME)
+		local raw = HasConfigFileSystem and readConfigFile(Folders.Configs .. "/" .. ConfigMetadata.FILENAME)
 		self._configMetadata = ConfigMetadata.read(raw, function(text) return HttpService:JSONDecode(text) end)
 	end
 	return self._configMetadata
@@ -1734,7 +1750,7 @@ function Library:_TouchConfigMetadata(name, action)
 	if not validConfigName(name) then return false end
 	local index = self:_ConfigMetadataIndex()
 	local changed = ConfigMetadata.touch(index, name, action, os.time())
-	if not changed or not HasFileSystem then return false end
+	if not changed or not HasConfigFileSystem then return false end
 	local encoded, raw = pcall(HttpService.JSONEncode, HttpService, index)
 	if not encoded then return false end
 	local path = Folders.Configs .. "/" .. ConfigMetadata.FILENAME
@@ -5141,7 +5157,7 @@ function Library:CreateSettingsPage(window, watermark, keybindList, options: Set
 	tab.SettingsSections = {}
 	tab:SetSettingsPosition(options.SettingsPosition or "Top")
 	tab._buildingSettings = true
-	if HasFileSystem then
+	if HasConfigFileSystem then
 		local cfgSection = tab:Section({ Name = "Configs", Side = 1 })
 		tab.SettingsSections.Configs = cfgSection
 		local cfgName, cfgSelected, autoDD
