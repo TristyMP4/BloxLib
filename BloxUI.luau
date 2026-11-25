@@ -4845,10 +4845,20 @@ function Library:MessageBox(opts)
 		if #buttons == 0 then buttons = { { Text = "OK", Primary = true } } end
 	end
 
-	local row = Create("Frame", { Parent = panel, BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 24),
+	local stackVertically = #buttons > 2
+	if not stackVertically and #buttons == 2 then
+		local len1 = #(tostring(buttons[1] and buttons[1].Text or ""))
+		local len2 = #(tostring(buttons[2] and buttons[2].Text or ""))
+		if (len1 + len2) > 28 then stackVertically = true end
+	end
+	local row = Create("Frame", { Parent = panel, BackgroundTransparency = 1,
+		Size = stackVertically and UDim2.new(1, 0, 0, 0) or UDim2.new(1, 0, 0, 24),
+		AutomaticSize = stackVertically and Enum.AutomaticSize.Y or Enum.AutomaticSize.None,
 		LayoutOrder = 2 })
-	Create("UIListLayout", { Parent = row, FillDirection = Enum.FillDirection.Horizontal,
-		HorizontalFlex = Enum.UIFlexAlignment.Fill, Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder })
+	Create("UIListLayout", { Parent = row,
+		FillDirection = stackVertically and Enum.FillDirection.Vertical or Enum.FillDirection.Horizontal,
+		HorizontalFlex = stackVertically and Enum.UIFlexAlignment.None or Enum.UIFlexAlignment.Fill,
+		Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder })
 	for i, b in buttons do
 		local btn = ElementSkin(row, 24)
 		btn.LayoutOrder = i
