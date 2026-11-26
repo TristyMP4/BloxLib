@@ -1305,6 +1305,13 @@ local function AssetUrl(value: any): string
 	return "rbxassetid://" .. s
 end
 
+local DEFAULT_LOGO = "105962959188216"
+local function ResolveLogo(value: any): string?
+	if value == false then return nil end
+	if value == nil or value == "" or value == true then return DEFAULT_LOGO end
+	return tostring(value)
+end
+
 function Library:GetImage(name: string): string
 	local data = Assets[name]
 	if not data then return "" end
@@ -3507,10 +3514,8 @@ function Library:Window(data: WindowConfig?)
 	window.Layout = layoutMode
 	window.PreferredLayout = layoutMode
 	local TITLEBAR_H = Device.Mode == "Mobile" and 44 / Config.Scale or 30
-	local logo = if data.Logo == false then nil
-		elseif data.Logo == nil or data.Logo == "" or data.Logo == true then "105962959188216"
-		else tostring(data.Logo)
-	local hasLogo = logo ~= nil and logo ~= ""
+	local logo = ResolveLogo(data.Logo)
+	local hasLogo = logo ~= nil
 
 	local root = Create("Frame", { Parent = Holder, Visible = false, ClipsDescendants = true,
 		AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = size,
@@ -4795,9 +4800,10 @@ function Library:Loader(opts)
 	opts = opts or {}
 	local _, panel, close = buildModal(opts.Width or 320, { Dim = opts.Dim })
 
-	if opts.Logo and opts.Logo ~= "" then
+	local logo = ResolveLogo(opts.Logo)
+	if logo then
 		Create("ImageLabel", { Parent = panel, BackgroundTransparency = 1, Size = UDim2.fromOffset(56, 56),
-			LayoutOrder = 0, ScaleType = Enum.ScaleType.Fit, Image = AssetUrl(opts.Logo),
+			LayoutOrder = 0, ScaleType = Enum.ScaleType.Fit, Image = AssetUrl(logo),
 			ImageColor3 = Color3.fromRGB(202, 243, 255), ThemeTag = { ImageColor3 = "Accent" } })
 	end
 	local title = MakeText(panel, opts.Title or "Loading", { Size = UDim2.new(1, 0, 0, 18), LayoutOrder = 1,
@@ -5001,10 +5007,11 @@ function Library:KeySystem(opts)
 	end
 
 	-- optional logo
-	if opts.Logo and opts.Logo ~= "" then
+	local logo = ResolveLogo(opts.Logo)
+	if logo then
 		Create("ImageLabel", { Parent = panel, BackgroundTransparency = 1, LayoutOrder = 1,
 			Size = UDim2.fromOffset(54, 54), ScaleType = Enum.ScaleType.Fit,
-			Image = AssetUrl(opts.Logo), ImageColor3 = Color3.fromRGB(202, 243, 255),
+			Image = AssetUrl(logo), ImageColor3 = Color3.fromRGB(202, 243, 255),
 			ThemeTag = { ImageColor3 = "Accent" } })
 	end
 
