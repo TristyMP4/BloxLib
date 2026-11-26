@@ -3508,7 +3508,7 @@ function Library:Window(data: WindowConfig?)
 	window.PreferredLayout = layoutMode
 	local TITLEBAR_H = Device.Mode == "Mobile" and 44 / Config.Scale or 30
 	local logo = if data.Logo == false then nil
-		elseif data.Logo == nil or data.Logo == "" or data.Logo == true then "138817205220585"
+		elseif data.Logo == nil or data.Logo == "" or data.Logo == true then "105962959188216"
 		else tostring(data.Logo)
 	local hasLogo = logo ~= nil and logo ~= ""
 
