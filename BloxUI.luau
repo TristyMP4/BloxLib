@@ -61,7 +61,7 @@ export type Theme = { [string]: Color3 }
 
 export type WindowConfig = {
 	Title: string?,
-	Logo: string?,
+	Logo: (string | number | boolean)?,
 	Size: UDim2?,
 	FadeTime: number?,
 	Resizable: boolean?,
@@ -3507,7 +3507,10 @@ function Library:Window(data: WindowConfig?)
 	window.Layout = layoutMode
 	window.PreferredLayout = layoutMode
 	local TITLEBAR_H = Device.Mode == "Mobile" and 44 / Config.Scale or 30
-	local hasLogo = data.Logo and data.Logo ~= ""
+	local logo = if data.Logo == false then nil
+		elseif data.Logo == nil or data.Logo == "" or data.Logo == true then "138817205220585"
+		else tostring(data.Logo)
+	local hasLogo = logo ~= nil and logo ~= ""
 
 	local root = Create("Frame", { Parent = Holder, Visible = false, ClipsDescendants = true,
 		AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = size,
@@ -3528,7 +3531,7 @@ function Library:Window(data: WindowConfig?)
 	if hasLogo then
 		Create("ImageLabel", { Parent = titlebar, BackgroundTransparency = 1, AnchorPoint = Vector2.new(0, 0.5),
 			Position = UDim2.new(0, 12, 0.5, 0), Size = UDim2.fromOffset(18, 18), ScaleType = Enum.ScaleType.Fit,
-			Image = AssetUrl(data.Logo), ImageColor3 = Color3.fromRGB(202, 243, 255),
+			Image = AssetUrl(logo), ImageColor3 = Color3.fromRGB(202, 243, 255),
 			ThemeTag = { ImageColor3 = "Accent" } })
 	end
 	local titleText = MakeText(titlebar, data.Title or "BloxUI", { AnchorPoint = Vector2.new(0, 0.5),
@@ -3765,7 +3768,7 @@ function Library:Window(data: WindowConfig?)
 		if hasLogo then
 			Create("ImageLabel", { Parent = mb, BackgroundTransparency = 1, AnchorPoint = Vector2.new(0.5, 0.5),
 				Position = UDim2.fromOffset(52, 25), Size = UDim2.fromOffset(46, 46), ScaleType = Enum.ScaleType.Fit,
-				Image = AssetUrl(data.Logo), ImageColor3 = Color3.fromRGB(202, 243, 255), ZIndex = 801,
+				Image = AssetUrl(logo), ImageColor3 = Color3.fromRGB(202, 243, 255), ZIndex = 801,
 				ThemeTag = { ImageColor3 = "Accent" } })
 		else
 			for i = 0, 2 do -- hamburger glyph
